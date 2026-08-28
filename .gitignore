@@ -85,3 +85,6 @@ tmp/
 temp/
 *.tmp
 *.bak
+test_image.png
+test_image.png
+training.log
