@@ -1,0 +1,19 @@
+# syntax=docker/dockerfile:1
+
+# Stage 1: base with pinned dependencies
+FROM python:3.11-slim AS base
+WORKDIR /app
+COPY requirements/train.txt .
+RUN pip install --no-cache-dir -r train.txt
+
+# Stage 2: training runtime
+FROM base AS training
+COPY src/ ./src/
+COPY configs/ ./configs/
+
+ENV PYTHONUNBUFFERED=1
+# Config path can be overridden at runtime via env var or a mounted volume
+# at /app/configs/training_config.yaml (default resolved in src/train.py).
+ENV TRAINING_CONFIG_PATH=""
+
+ENTRYPOINT ["python", "src/train.py"]

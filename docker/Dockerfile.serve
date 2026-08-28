@@ -1,0 +1,32 @@
+# syntax=docker/dockerfile:1
+
+# Stage 1: base with pinned inference-only dependencies
+FROM python:3.11-slim AS base
+WORKDIR /app
+COPY requirements/serve.txt .
+RUN pip install --no-cache-dir -r serve.txt
+
+# Stage 2: serving runtime
+FROM base AS serving
+
+# Create a non-root user to run the service
+RUN groupadd --gid 1000 appuser \
+    && useradd --uid 1000 --gid appuser --shell /bin/bash --create-home appuser
+
+COPY src/model.py src/serve.py ./src/
+
+ENV PYTHONUNBUFFERED=1
+ENV MODEL_CHECKPOINT_PATH=/app/checkpoints/classifier_v1.pt
+
+# Checkpoint directory is mounted at runtime (see k8s/serving-deployment.yaml)
+RUN mkdir -p /app/checkpoints && chown -R appuser:appuser /app
+
+USER appuser
+WORKDIR /app/src
+
+EXPOSE 8080
+
+HEALTHCHECK --interval=30s --timeout=5s --start-period=15s --retries=3 \
+    CMD python -c "import urllib.request,sys; sys.exit(0 if urllib.request.urlopen('http://localhost:8080/health', timeout=3).status == 200 else 1)"
+
+CMD ["uvicorn", "serve:app", "--host", "0.0.0.0", "--port", "8080"]
