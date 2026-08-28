@@ -1,0 +1,87 @@
+## Python
+pycache/
+*.pyc
+*.pyo
+*.pyd
+.venv/
+venv/
+env/
+*.egg-info/
+build/
+dist/
+
+## Data and checkpoints (do not commit datasets or trained weights)
+
+data/
+datasets/
+checkpoints/
+models/
+weights/
+artifacts/
+outputs/
+runs/
+*.pt
+*.pth
+*.ckpt
+*.safetensors
+*.onnx
+*.pkl
+*.pickle
+*.joblib
+
+## MLOps
+
+mlruns/
+mlartifacts/
+wandb/
+.dvc/cache/
+.dvc/tmp/
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.ipynb_checkpoints/
+
+## Environment / secrets
+
+.env
+.env.*
+!.env.example
+*.env.local
+*.local
+*.secret
+credentials.json
+secrets.json
+*.pem
+*.key
+
+## Docker
+
+*.log
+docker-compose.override.yml
+
+Kubernetes
+
+kubeconfig
+kubeconfig.*
+*.kubeconfig
+k8s/secrets/
+kubernetes/secrets/
+
+## IDE
+
+.vscode/
+.idea/
+*.swp
+*.swo
+
+## OS
+
+.DS_Store
+Thumbs.db
+
+## Temporary files
+
+tmp/
+temp/
+*.tmp
+*.bak
