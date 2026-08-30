@@ -89,3 +89,4 @@ test_image.png
 test_image.png
 training.log
 /checkpoints
+/data
