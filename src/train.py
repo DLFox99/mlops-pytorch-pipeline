@@ -13,7 +13,8 @@ from model import get_model
 Training entrypoint. Reads hyperparams from a YAML config (env var override,
 then mounted path, then local fallback), logs JSON lines to stdout so
 container logs are parseable, checkpoints the best model, stops early if
-val loss stalls.
+val loss stalls. If a checkpoint already exists at the output path, resumes
+from it instead of starting over.
 """
 
 
@@ -89,14 +90,35 @@ def main() -> None:
     optimizer = torch.optim.Adam(model.parameters(), lr=config["training"]["learning_rate"])
     criterion = nn.CrossEntropyLoss()
 
+    checkpoint_dir = Path(config["output"]["checkpoint_dir"])
+    checkpoint_dir.mkdir(parents=True, exist_ok=True)
+    save_path = checkpoint_dir / config["output"]["model_name"]
+
+    start_epoch = 0
     best_val_loss = float("inf")
+
+    if save_path.exists():
+        checkpoint = torch.load(save_path, map_location=device)
+        model.load_state_dict(checkpoint["model_state_dict"])
+        optimizer.load_state_dict(checkpoint["optimizer_state_dict"])
+        start_epoch = checkpoint.get("epoch", 0)
+        best_val_loss = checkpoint.get("val_loss", float("inf"))
+        print(
+            json.dumps(
+                {
+                    "event": "resumed_from_checkpoint",
+                    "path": str(save_path),
+                    "start_epoch": start_epoch,
+                    "best_val_loss": round(best_val_loss, 4),
+                }
+            ),
+            flush=True,
+        )
+
     patience_counter = 0
     patience = config["training"]["early_stopping_patience"]
 
-    checkpoint_dir = Path(config["output"]["checkpoint_dir"])
-    checkpoint_dir.mkdir(parents=True, exist_ok=True)
-
-    for epoch in range(config["training"]["epochs"]):
+    for epoch in range(start_epoch, config["training"]["epochs"]):
         train_loss, train_acc = train_one_epoch(model, train_loader, optimizer, criterion, device)
         val_loss, val_acc = evaluate(model, val_loader, criterion, device)
 
@@ -116,7 +138,6 @@ def main() -> None:
         if val_loss < best_val_loss:
             best_val_loss = val_loss
             patience_counter = 0
-            save_path = checkpoint_dir / config["output"]["model_name"]
             torch.save(
                 {
                     "epoch": epoch + 1,
